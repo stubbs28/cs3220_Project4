@@ -12,14 +12,13 @@ module Project2(SW,KEY,LEDR,LEDG,HEX0,HEX1,HEX2,HEX3,CLOCK_50);
 	parameter ADDR_LEDR						= 32'hF0000004;
 	parameter ADDR_LEDG						= 32'hF0000008;
 
-
 	parameter DBITS							= 32;
 	parameter INST_BIT_WIDTH				= 32;
 	parameter START_PC						= 32'h40;
 	parameter REG_INDEX_BIT_WIDTH			= 4;
 
-	parameter IMEM_INIT_FILE				= "Test2.mif";
-
+	parameter IMEM_INIT_FILE				= "stopwatch.mif";
+	
 	parameter IMEM_ADDR_BIT_WIDTH			= 11;
 	parameter IMEM_DATA_BIT_WIDTH			= INST_BIT_WIDTH;
 	parameter TRUE_DMEM_ADDR_BIT_WIDTH	= 11;

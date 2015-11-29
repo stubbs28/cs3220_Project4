@@ -1,0 +1,55 @@
+; Stack begins at the very top of memory
+.NAME	StkTop=8192
+; Timer limits
+.NAME	Second=1000
+; Addresses for I/O
+.NAME 	IOBASE= 0xF0000000
+.NAME	OFSHEX= 0x00000000
+.NAME	OFSLEDR=0x00000004
+.NAME	OFSLEDG=0x00000008
+.NAME	OFSKEY =0x00000010
+.NAME	OFSSW  =0x00000014
+.NAME	OFSTIMR=0x00000020
+.NAME	OFSTLIM=0x00000024
+.NAME   OFSKCTL=0x00000110
+.NAME   OFSSCTL=0x00000114
+.NAME	OFSTCTL=0x00000120
+
+	;  Now the actual code
+	.ORIG 0x40
+	; SP Points to the top of the stack
+	MVHI	SP,StkTop
+	ADDI	SP,SP,StkTop
+	; Our GP will point to the beginning of I/O addresses
+	MVHI	GP,IOBASE
+	; Our S0 will be zero
+	ANDI	S0,S0,0
+Init:
+	SW		S0,OFSLEDR(GP)	; Turn off LEDR
+	SW		S0,OFSLEDG(GP)	; Turn off LEDG
+	SW		S0,OFSHEX(GP)	; Zero Hex Display
+	;Set timer limit
+	MVHI	T0,Second
+	ADDI	T0,T0,Second
+	SW		T0,OFSTLIM(GP)	; Set TLIM = 1000ms
+	ADDI	S1,S0,1			
+Reset:
+	LW		T0,OFSKEY(GP)	; Get Keypress
+	bne		T0,S1,Reset
+Dummy0:
+	LW		T0,OFSKEY(GP)	; Get Keydepress
+	bne		T0,S0,Dummy0
+SetSec:
+	LW		T0,OFSSW(GP)	; Get Switch Value
+	ANDI	T0,T0,0x00FF
+	SW		T0,OFSHEX(GP)	; Save Switch Value to HEX
+	LW		T0,OFSKEY(GP)	; Get Keypress
+	bne		T0,S1,SetSec
+Dummy1:
+	LW		T0,OFSKEY(GP)	; Get Keydepress
+	bne		T0,S0,Dummy1
+Done:
+	NOT		T0,S0			; All-ones in T0
+	SW		T0,OFSLEDG(GP)	; Turn on LEDG
+	SW		S0,OFSLEDR(GP)	; Turn off LEDR
+	BT		T0,S0,Done		; Loop forever
