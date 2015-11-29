@@ -100,14 +100,14 @@ Blink:
 	ADDI	T0,T0,HalfSec
 	SW		T0,OFSTLIM(GP)	; Set TLIM = 1000ms
 BlinkLoop:
-	LW		T0,OFSKEY(GP)
+	LW		T0,OFSKEY(GP)	; first check if reset key is pressed
 	beq		T0,S2,Init
-	LW		T0,OFSTCTL(GP)
-	beq		T0,FP,BlinkLoop
-	SW		FP,OFSTCTL(GP)
-	LW		T0,OFSLEDR(GP)
-	NOT		T0,T0;
-	SW		T0,OFSLEDR(GP)
+	LW		T0,OFSTCTL(GP)	; check for tick
+	beq		T0,FP,BlinkLoop	; loop if we haven't ticked
+	SW		FP,OFSTCTL(GP)	; update that we've ticked
+	LW		T0,OFSLEDR(GP)	; get the current LEDR
+	NOT		T0,T0;			; flip current LEDR
+	SW		T0,OFSLEDR(GP)	; save new LEDR
 	bt		FP,FP,BlinkLoop
 	
 ;Display the current time on the Hex
@@ -130,6 +130,7 @@ HexLoop:					; bitshift the miniute values
 CheckTick:
 	LW		T0,OFSTCTL(GP)
 	beq		T0,FP,EndTick	; we haven't ticked
+	SW		FP,OFSTCTL(GP)	; we've ticked
 	;TODO subtract 1 sec from time left
 	;If the time left equals zero, branch Timeout
 EndTick:					; return, clock is not zero
