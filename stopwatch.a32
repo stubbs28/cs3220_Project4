@@ -6,6 +6,7 @@
 .NAME	LowerSec=0x10C
 ; Timer limits
 .NAME	Second=1000
+.NAME	HalfSec=500
 ; Addresses for I/O
 .NAME 	IOBASE= 0xF0000000
 .NAME	OFSHEX= 0x00000000
@@ -94,9 +95,20 @@ Dummy4:
 	bne		T0,FP,Dummy4
 	beq		T0,FP,Ready
 Blink:
-	;TODO blink ledr
+	;Set timer limit
+	MVHI	T0,HalfSec
+	ADDI	T0,T0,HalfSec
+	SW		T0,OFSTLIM(GP)	; Set TLIM = 1000ms
+BlinkLoop:
+	LW		T0,OFSKEY(GP)
 	beq		T0,S2,Init
-	bne		T0,S2,Blink
+	LW		T0,OFSTCTL(GP)
+	beq		T0,FP,BlinkLoop
+	SW		FP,OFSTCTL(GP)
+	LW		T0,OFSLEDR(GP)
+	NOT		T0,T0;
+	SW		T0,OFSLEDR(GP)
+	bt		FP,FP,BlinkLoop
 	
 ;Display the current time on the Hex
 DisplayHex:
