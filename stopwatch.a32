@@ -60,7 +60,7 @@ SetSec:
 	SW		S1,UpperSec(FP)
 	ANDI	S1,T0,0xF
 	SW		S1,LowerSec(FP)
-	; TODO CALL DISPLAY HEX
+	CALL	DisplayHex(FP)
 	LW		T0,OFSKEY(GP)	; Get Keypress
 	beq		T0,S2,Init
 	bne		T0,S0,SetSec
@@ -77,7 +77,7 @@ SetMin:
 	SW		S1,UpperMin(FP)
 	ANDI	S1,T0,0xF
 	SW		S1,LowerMin(FP)
-	; TODO CALL DISPLAY HEX
+	CALL	DisplayHex(FP)
 	LW		T0,OFSKEY(GP)	; Get Keypress
 	beq		T0,S2,Init
 	bne		T0,S0,SetMin
@@ -101,6 +101,7 @@ Dummy3:
 Runing:
 	ADDI	R0,FP,9
 	SW		R0,OFSLEDG(GP)
+	CALL	DisplayHex(FP)
 	LW		T0,OFSKEY(GP)
 	beq		T0,S2,Init
 	bne		T0,S0,Runing
@@ -110,3 +111,20 @@ Dummy4:
 	LW		T0,OFSKEY(GP)
 	bne		T0,FP,Dummy4
 	beq		T0,FP,Ready
+	
+DisplayHex:
+	LW		S1,UpperSec(FP)
+	LW		T0,LowerSec(FP)
+	ADD		S1,S1,T0
+	LW		T0,UpperMin(FP)
+	LW		T1,LowerMin(FP)
+	ADD		T0,T0,T1
+	ADDI	T1,FP,8
+HexLoop:
+	ADD		T0,T0,T0
+	ADDI	T1,T1,-1
+	bne		T1,FP,HexLoop
+	ADD		S1,S1,T0
+	SW		S1,OFSHEX(GP)
+	RET
+	
