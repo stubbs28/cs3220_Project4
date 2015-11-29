@@ -43,21 +43,6 @@ module Project2(SW,KEY,LEDR,LEDG,HEX0,HEX1,HEX2,HEX3,CLOCK_50);
 	wire [IMEM_DATA_BIT_WIDTH - 1 : 0] instWord;
 	wire [DBITS - 1 : 0] pcIn, pcOut, incrementedPC, pcAdderOut, aluOut, signExtImm, dataMuxOut, sr1Out, sr2Out, sr1OutUnForwarded, sr2OutUnForwarded, aluMuxOut, memDataOut, sextOut, aluOutOut, dataOut, pcOutOut;
 	
-	// bus
-	wire [DBITS - 1 : 0] abus;
-	tri [DBITS - 1 : 0] dbus;
-	wire we;
-
-	assign abus = aluOutOut;
-	assign we = memWrtOut;
-	assign dbus = memWrtOut ? dataOut : {DBITS{1'bz}};
-	
-	// Attach timer device
-	Timer timer (
-		.abus(abus), .dbus(dbus), .we(we),
-		.intr(intr_timer),
-		.clk(clk),.lock(lock),.init(init));
-	
 	// Create PCMUX
 	Mux3to1 #(DBITS) pcMux (
 		.sel({jalOut, (branchOut & aluOutOut[0])}),

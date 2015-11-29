@@ -1,18 +1,19 @@
-module Key(keys, abus, dbus, we, intr, clk, init);
+module Switch(sw, abus, dbus, we, intr, clk, init);
 	parameter DBITS = 32;
-	parameter DATA_ADDR = 32'hF0000010;
-	parameter CTRL_ADDR = 32'hF0000110;
+	parameter MAX_TICKS = 100000; // 10,000,000 ticks * sec^-1 / 1,000 sec * ms^-1 * 10
+	parameter DATA_ADDR = 32'hF0000014;
+	parameter CTRL_ADDR = 32'hF0000114;
 	parameter READY_BIT = 0;
 	parameter OVERRUN_BIT = 2;
 	parameter IE_BIT = 8;
 	
-	input wire [3 : 0] keys;
+	input wire [9 : 0] sw;
 	input wire [DBITS - 1 : 0] abus;
 	inout wire [DBITS - 1 : 0] dbus;
 	input wire we, clk, init;
 	output wire intr;
 	
-	reg [DBITS - 1: 0] CTRL, DATA;
+	reg [DBITS - 1: 0] CTRL, DATA, PREV_DATA, COUNTER;
 	
 	// device read/write selection
 	wire selDATA = abus == DATA_ADDR;
@@ -35,15 +36,22 @@ module Key(keys, abus, dbus, we, intr, clk, init);
 		if (init) begin 
 			CTRL <= 32'd0;
 			DATA <= 32'd0;
+			PREV_DATA <= 32'd0;
 		end
-	
-		// Set data from keys
-		if (DATA[3:0] != keys) begin
-			DATA[3:0] <= keys;
+		
+		COUNTER <= COUNTER + 1;
+		if ((PREV_DATA[9:0] != sw) && (COUNTER < MAX_TICKS - 1)) begin
+			PREV_DATA[9:0] <= sw;
+			COUNTER <= 32'd0;
+		end
+		
+		if(COUNTER == MAX_TICKS - 1) begin
+			COUNTER <= 32'd0;
+			DATA <= PREV_DATA;
 			CTRL[OVERRUN_BIT] <= CTRL[READY_BIT] | CTRL[OVERRUN_BIT];
 			CTRL[READY_BIT] <= 1'b1;
 		end
-		
+				
 		// clear ready bit
 		if (rdDATA) CTRL[READY_BIT] <= 1'b0;
 			

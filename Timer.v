@@ -8,8 +8,8 @@ module Timer(abus, dbus, we, intr, clk, init);
 	parameter OVERRUN_BIT = 2;
 	parameter INTR_EN_BIT = 8;
 	
-	input wire [bits - 1 : 0] abus;
-	inout wire [bits - 1 : 0] dbus;
+	input wire [DBITS - 1 : 0] abus;
+	inout wire [DBITS - 1 : 0] dbus;
 	input wire we, clk, init;
 	output wire intr;
 	
@@ -59,7 +59,7 @@ module Timer(abus, dbus, we, intr, clk, init);
 		baseCounter <= baseCounter + 1;
 		if (baseCounter == TICKS_PER_MS - 1) begin
 			baseCounter <= 32'd0;
-			counter <= counter + 1;
+			CNT <= CNT + 1;
 			if (LIM != 0 && CNT == LIM - 1) begin
 				CNT <= 32'd0;
 				CTL[OVERRUN_BIT] <= CTL[READY_BIT] | CTL[OVERRUN_BIT];
