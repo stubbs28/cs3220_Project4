@@ -43,75 +43,62 @@ Init:
 	ADDI	S0,FP,2
 	ADDI	S2,FP,1	
 Reset:
-	ADDI	R0,FP,1
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)	; Get Keypress
 	bne		T0,S0,Reset
 Dummy0:
-	ADDI	R0,FP,2
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)	; Get Keydepress
 	bne		T0,FP,Dummy0
 SetSec:
-	ADDI	R0,FP,3
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSSW(GP)	; Get Switch Value
 	ANDI	S1,T0,0xF0
-	SW		S1,UpperSec(FP)
+	SW		S1,UpperSec(FP)	; Save upper sec value
 	ANDI	S1,T0,0xF
-	SW		S1,LowerSec(FP)
+	SW		S1,LowerSec(FP)	; Save lower sec value
 	CALL	DisplayHex(FP)
 	LW		T0,OFSKEY(GP)	; Get Keypress
 	beq		T0,S2,Init
 	bne		T0,S0,SetSec
 Dummy1:
-	ADDI	R0,FP,4
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)	; Get Keydepress
 	bne		T0,FP,Dummy1
 SetMin:
-	ADDI	R0,FP,5
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSSW(GP)	; Get Switch Value
 	ANDI	S1,T0,0xF0
-	SW		S1,UpperMin(FP)
+	SW		S1,UpperMin(FP)	; Save upper min value
 	ANDI	S1,T0,0xF
-	SW		S1,LowerMin(FP)
+	SW		S1,LowerMin(FP)	; Save lower min value
 	CALL	DisplayHex(FP)
 	LW		T0,OFSKEY(GP)	; Get Keypress
 	beq		T0,S2,Init
 	bne		T0,S0,SetMin
 Dummy2:
-	ADDI	R0,FP,6
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)	; Get Keypress
-	bne		T0,FP,Dummy2
-	ADDI 	S0,FP,4
+	bne		T0,FP,Dummy2	
+	ADDI 	S0,FP,4			; start/stop key
 Ready:
-	ADDI	R0,FP,7
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)
 	beq		T0,S2,Init
 	bne		T0,S0,Ready
 Dummy3:
-	ADDI	R0,FP,8
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)
 	bne		T0,FP,Dummy3
 Runing:
-	ADDI	R0,FP,9
-	SW		R0,OFSLEDG(GP)
-	CALL	DisplayHex(FP)
+	CALL	DisplayHex(FP)	; update Hex display
+	CALL	CheckTick(FP)	; update countdown
+	beq		RV,FP,Blink
 	LW		T0,OFSKEY(GP)
 	beq		T0,S2,Init
 	bne		T0,S0,Runing
 Dummy4:
-	ADDI	R0,FP,10
-	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)
 	bne		T0,FP,Dummy4
 	beq		T0,FP,Ready
+Blink:
+	;TODO blink ledr
+	beq		T0,S2,Init
+	bne		T0,S2,Blink
 	
+;Display the current time on the Hex
 DisplayHex:
 	LW		S1,UpperSec(FP)
 	LW		T0,LowerSec(FP)
@@ -120,11 +107,23 @@ DisplayHex:
 	LW		T1,LowerMin(FP)
 	ADD		T0,T0,T1
 	ADDI	T1,FP,8
-HexLoop:
+HexLoop:					; bitshift the miniute values
 	ADD		T0,T0,T0
 	ADDI	T1,T1,-1
 	bne		T1,FP,HexLoop
 	ADD		S1,S1,T0
 	SW		S1,OFSHEX(GP)
+	RET
+	
+CheckTick:
+	LW		T0,OFSTCTL(GP)
+	beq		T0,FP,EndTick	; we haven't ticked
+	;TODO subtract 1 sec from time left
+	;If the time left equals zero, branch Timeout
+EndTick:					; return, clock is not zero
+	ADDI	RV,FP,1
+	RET
+Timeout:					; return, clock is zero
+	ADDI	RV,FP,0
 	RET
 	
