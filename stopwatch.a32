@@ -98,16 +98,15 @@ Dummy3:
 	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)
 	bne		T0,FP,Dummy3
-Run:
+Runing:
 	ADDI	R0,FP,9
 	SW		R0,OFSLEDG(GP)
-	; TODO CALL SECOND TICK
-	LW		T0,OFSKEY(FP)
+	LW		T0,OFSKEY(GP)
 	beq		T0,S2,Init
-	bne		T0,S0,Run
+	bne		T0,S0,Runing
 Dummy4:
 	ADDI	R0,FP,10
 	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)
 	bne		T0,FP,Dummy4
-	JMP		Ready(FP);
+	beq		T0,FP,Ready
