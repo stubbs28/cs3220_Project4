@@ -1,5 +1,9 @@
 ; Stack begins at the very top of memory
 .NAME	StkTop=8192
+.NAME	UpperMin=0x100
+.NAME	LowerMin=0x104
+.NAME	UpperSec=0x108
+.NAME	LowerSec=0x10C
 ; Timer limits
 .NAME	Second=1000
 ; Addresses for I/O
@@ -22,34 +26,88 @@
 	ADDI	SP,SP,StkTop
 	; Our GP will point to the beginning of I/O addresses
 	MVHI	GP,IOBASE
-	; Our S0 will be zero
-	ANDI	S0,S0,0
+	; Our FP will be zero
+	XOR		FP,FP,FP
 Init:
-	SW		S0,OFSLEDR(GP)	; Turn off LEDR
-	SW		S0,OFSLEDG(GP)	; Turn off LEDG
-	SW		S0,OFSHEX(GP)	; Zero Hex Display
+	SW		FP,OFSLEDR(GP)	; Turn off LEDR
+	SW		FP,OFSLEDG(GP)	; Turn off LEDG
+	SW		FP,OFSHEX(GP)	; Zero Hex
+	SW		FP,UpperMin(FP) 
+	SW		FP,LowerMin(FP)
+	SW		FP,UpperSec(FP)
+	SW		FP,LowerSec(FP)
 	;Set timer limit
 	MVHI	T0,Second
 	ADDI	T0,T0,Second
 	SW		T0,OFSTLIM(GP)	; Set TLIM = 1000ms
-	ADDI	S1,S0,1			
+	ADDI	S0,FP,2
+	ADDI	S2,FP,1	
 Reset:
+	ADDI	R0,FP,1
+	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)	; Get Keypress
-	bne		T0,S1,Reset
+	bne		T0,S0,Reset
 Dummy0:
+	ADDI	R0,FP,2
+	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)	; Get Keydepress
-	bne		T0,S0,Dummy0
+	bne		T0,FP,Dummy0
 SetSec:
+	ADDI	R0,FP,3
+	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSSW(GP)	; Get Switch Value
-	ANDI	T0,T0,0x00FF
-	SW		T0,OFSHEX(GP)	; Save Switch Value to HEX
+	ANDI	S1,T0,0xF0
+	SW		S1,UpperSec(FP)
+	ANDI	S1,T0,0xF
+	SW		S1,LowerSec(FP)
+	; TODO CALL DISPLAY HEX
 	LW		T0,OFSKEY(GP)	; Get Keypress
-	bne		T0,S1,SetSec
+	beq		T0,S2,Init
+	bne		T0,S0,SetSec
 Dummy1:
+	ADDI	R0,FP,4
+	SW		R0,OFSLEDG(GP)
 	LW		T0,OFSKEY(GP)	; Get Keydepress
-	bne		T0,S0,Dummy1
-Done:
-	NOT		T0,S0			; All-ones in T0
-	SW		T0,OFSLEDG(GP)	; Turn on LEDG
-	SW		S0,OFSLEDR(GP)	; Turn off LEDR
-	BT		T0,S0,Done		; Loop forever
+	bne		T0,FP,Dummy1
+SetMin:
+	ADDI	R0,FP,5
+	SW		R0,OFSLEDG(GP)
+	LW		T0,OFSSW(GP)	; Get Switch Value
+	ANDI	S1,T0,0xF0
+	SW		S1,UpperMin(FP)
+	ANDI	S1,T0,0xF
+	SW		S1,LowerMin(FP)
+	; TODO CALL DISPLAY HEX
+	LW		T0,OFSKEY(GP)	; Get Keypress
+	beq		T0,S2,Init
+	bne		T0,S0,SetMin
+Dummy2:
+	ADDI	R0,FP,6
+	SW		R0,OFSLEDG(GP)
+	LW		T0,OFSKEY(GP)	; Get Keypress
+	bne		T0,FP,Dummy2
+	ADDI 	S0,FP,4
+Ready:
+	ADDI	R0,FP,7
+	SW		R0,OFSLEDG(GP)
+	LW		T0,OFSKEY(GP)
+	beq		T0,S2,Init
+	bne		T0,S0,Ready
+Dummy3:
+	ADDI	R0,FP,8
+	SW		R0,OFSLEDG(GP)
+	LW		T0,OFSKEY(GP)
+	bne		T0,FP,Dummy3
+Run:
+	ADDI	R0,FP,9
+	SW		R0,OFSLEDG(GP)
+	; TODO CALL SECOND TICK
+	LW		T0,OFSKEY(FP)
+	beq		T0,S2,Init
+	bne		T0,S0,Run
+Dummy4:
+	ADDI	R0,FP,10
+	SW		R0,OFSLEDG(GP)
+	LW		T0,OFSKEY(GP)
+	bne		T0,FP,Dummy4
+	JMP		Ready(FP);
