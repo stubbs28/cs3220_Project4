@@ -39,7 +39,7 @@ module Key(keys, abus, dbus, we, intr, clk, init);
 	
 		// Set data from keys
 		if (DATA[3:0] != keys) begin
-			DATA[3:0] <= keys;
+			DATA[3:0] <= (~keys & 4'hf);
 			CTRL[OVERRUN_BIT] <= CTRL[READY_BIT] | CTRL[OVERRUN_BIT];
 			CTRL[READY_BIT] <= 1'b1;
 		end
