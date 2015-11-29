@@ -1,3 +1,63 @@
+//module Project2(SW,KEY,LEDR,LEDG,HEX0,HEX1,HEX2,HEX3,CLOCK_50);
+//	input  [9:0] SW;
+//	input  [3:0] KEY;
+//	input  CLOCK_50;
+//	output [9:0] LEDR;
+//	output [7:0] LEDG;
+//	output [6:0] HEX0,HEX1,HEX2,HEX3;
+//
+//	parameter ADDR_KEY						= 32'hF0000010;
+//	parameter ADDR_SW							= 32'hF0000014;
+//	parameter ADDR_HEX						= 32'hF0000000;
+//	parameter ADDR_LEDR						= 32'hF0000004;
+//	parameter ADDR_LEDG						= 32'hF0000008;
+//	
+//	wire [7:0] ledg;
+//	wire [9:0] ledr;
+//	wire [15:0] hex;
+//	
+//	wire [31 : 0] abus, dbus;
+//	
+//	wire we, clk, lock;
+//	PLL	PLL_inst (.inclk0 (CLOCK_50),.c0 (clk),.locked (lock));
+//	wire reset = ~lock;
+//	
+//	assign abus = ADDR_HEX;
+//	assign dbus = 32'hFFFFFFFA;
+//	assign we = 1'b1;
+//	
+//	OutputDevice #(.DEV_LEN(16), .DEV_ADDR(ADDR_HEX)) ledrDevice (
+//		.dev(hex), .abus(abus), .dbus(dbus), .we(we), .clk(clk));
+//	
+//	// Create SevenSeg for HEX3
+//	SevenSeg sevenSeg3 (
+//		.dIn(hex[15:12]),
+//		.dOut(HEX3)
+//	);
+//
+//	// Create SevenSeg for HEX2
+//	SevenSeg sevenSeg2 (
+//		.dIn(hex[11:8]),
+//		.dOut(HEX2)
+//	);
+//
+//	// Create SevenSeg for HEX1
+//	SevenSeg sevenSeg1 (
+//		.dIn(hex[7:4]),
+//		.dOut(HEX1)
+//	);
+//
+//	// Create SevenSeg for HEX0
+//	SevenSeg sevenSeg0 (
+//		.dIn(hex[3:0]),
+//		.dOut(HEX0)
+//	);
+//
+//	assign LEDR = ledr;
+//	assign LEDG = ledg;
+//	
+//endmodule
+
 module Project2(SW,KEY,LEDR,LEDG,HEX0,HEX1,HEX2,HEX3,CLOCK_50);
 	input  [9:0] SW;
 	input  [3:0] KEY;

@@ -39,12 +39,14 @@ module Switch(sw, abus, dbus, we, intr, clk, init);
 			PREV_DATA <= 32'd0;
 		end
 		
+		// debounce data
 		COUNTER <= COUNTER + 1;
 		if ((PREV_DATA[9:0] != sw) && (COUNTER < MAX_TICKS - 1)) begin
 			PREV_DATA[9:0] <= sw;
 			COUNTER <= 32'd0;
 		end
 		
+		// set data from debounce
 		if(COUNTER == MAX_TICKS - 1) begin
 			COUNTER <= 32'd0;
 			DATA <= PREV_DATA;
