@@ -1,63 +1,3 @@
-//module Project2(SW,KEY,LEDR,LEDG,HEX0,HEX1,HEX2,HEX3,CLOCK_50);
-//	input  [9:0] SW;
-//	input  [3:0] KEY;
-//	input  CLOCK_50;
-//	output [9:0] LEDR;
-//	output [7:0] LEDG;
-//	output [6:0] HEX0,HEX1,HEX2,HEX3;
-//
-//	parameter ADDR_KEY						= 32'hF0000010;
-//	parameter ADDR_SW							= 32'hF0000014;
-//	parameter ADDR_HEX						= 32'hF0000000;
-//	parameter ADDR_LEDR						= 32'hF0000004;
-//	parameter ADDR_LEDG						= 32'hF0000008;
-//	
-//	wire [7:0] ledg;
-//	wire [9:0] ledr;
-//	wire [15:0] hex;
-//	
-//	wire [31 : 0] abus, dbus;
-//	
-//	wire we, clk, lock;
-//	PLL	PLL_inst (.inclk0 (CLOCK_50),.c0 (clk),.locked (lock));
-//	wire reset = ~lock;
-//	
-//	assign abus = ADDR_HEX;
-//	assign dbus = 32'hFFFFFFFA;
-//	assign we = 1'b1;
-//	
-//	OutputDevice #(.DEV_LEN(16), .DEV_ADDR(ADDR_HEX)) ledrDevice (
-//		.dev(hex), .abus(abus), .dbus(dbus), .we(we), .clk(clk));
-//	
-//	// Create SevenSeg for HEX3
-//	SevenSeg sevenSeg3 (
-//		.dIn(hex[15:12]),
-//		.dOut(HEX3)
-//	);
-//
-//	// Create SevenSeg for HEX2
-//	SevenSeg sevenSeg2 (
-//		.dIn(hex[11:8]),
-//		.dOut(HEX2)
-//	);
-//
-//	// Create SevenSeg for HEX1
-//	SevenSeg sevenSeg1 (
-//		.dIn(hex[7:4]),
-//		.dOut(HEX1)
-//	);
-//
-//	// Create SevenSeg for HEX0
-//	SevenSeg sevenSeg0 (
-//		.dIn(hex[3:0]),
-//		.dOut(HEX0)
-//	);
-//
-//	assign LEDR = ledr;
-//	assign LEDG = ledg;
-//	
-//endmodule
-
 module Project2(SW,KEY,LEDR,LEDG,HEX0,HEX1,HEX2,HEX3,CLOCK_50);
 	input  [9:0] SW;
 	input  [3:0] KEY;
@@ -101,7 +41,23 @@ module Project2(SW,KEY,LEDR,LEDG,HEX0,HEX1,HEX2,HEX3,CLOCK_50);
 	wire [9:0] ledr;
 	wire [15:0] hex;
 	wire [IMEM_DATA_BIT_WIDTH - 1 : 0] instWord;
-	wire [DBITS - 1 : 0] pcIn, pcOut, incrementedPC, pcAdderOut, aluOut, signExtImm, dataMuxOut, sr1Out, sr2Out, sr1OutUnForwarded, sr2OutUnForwarded, aluMuxOut, memDataOut, sextOut, aluOutOut, dataOut, pcOutOut;
+	wire [DBITS - 1 : 0] pcIn, pcOut, incrementedPC, pcAdderOut, aluOut, signExtImm, dataMuxOut, sr1Out, sr2Out, sr1OutUnForwarded, sr2OutUnForwarded, aluMuxOut, sextOut, aluOutOut, dataOut, pcOutOut;
+	
+	wire [DBITS - 1 : 0] abus;
+	tri [DBITS - 1 : 0] dbus;
+	wire we, key_intr, sw_intr, timer_intr;
+	
+	assign abus = aluOutOut;
+	assign we = memWrtOut;
+	assign dbus = memWrtOut ? dataOut : {DBITS{1'bz}};
+	
+	// Attach devices
+	Key keydev(.keys(KEY), .abus(abus), .dbus(dbus), .we(we), .intr(key_intr), .clk(clk), .init(reset));
+	Switch switchdev(.sw(SW), .abus(abus), .dbus(dbus), .we(we), .intr(sw_intr), .clk(clk), .init(reset));
+	OutputDevice #(.DEV_LEN(10), .DEV_ADDR(ADDR_LEDR)) ledrdev(.dev(ledr), .abus(abus), .dbus(dbus), .we(we), .clk(clk));
+	OutputDevice #(.DEV_LEN(8), .DEV_ADDR(ADDR_LEDG)) ledgdev(.dev(ledg), .abus(abus), .dbus(dbus), .we(we), .clk(clk));
+	OutputDevice #(.DEV_LEN(16), .DEV_ADDR(ADDR_HEX)) hexdev(.dev(hex), .abus(abus), .dbus(dbus), .we(we), .clk(clk));
+	Timer timer(.abus(abus), .dbus(dbus), .we(we), .intr(timer_intr), .clk(clk), .init(reset));
 	
 	// Create PCMUX
 	Mux3to1 #(DBITS) pcMux (
@@ -247,20 +203,14 @@ module Project2(SW,KEY,LEDR,LEDG,HEX0,HEX1,HEX2,HEX3,CLOCK_50);
 		.clk(clk),
 		.wrtEn(memWrtOut),
 		.addr(aluOutOut),
-		.dIn(dataOut),
-		.sw(SW),
-		.key(KEY),
-		.ledr(ledr),
-		.ledg(ledg),
-		.hex(hex),
-		.dOut(memDataOut)
+		.dbus(dbus)
 	);
 
 	// Create dataMux
 	Mux3to1 #(DBITS) dataMux (
 		.sel({jalOut, memToRegOut}),
 		.dInSrc1(aluOutOut),
-		.dInSrc2(memDataOut),
+		.dInSrc2(dbus),
 		.dInSrc3(pcOutOut),
 		.dOut(dataMuxOut)
 	);	
