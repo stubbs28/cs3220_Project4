@@ -96,6 +96,7 @@ Dummy4:
 	bne		T0,FP,Dummy4
 	beq		T0,FP,Ready
 Blink:
+	CALL	DisplayHex(FP)
 	;Set timer limit
 	MVHI	T0,HalfSec
 	ADDI	T0,T0,HalfSec
@@ -118,11 +119,38 @@ CheckTick:
 	beq		T0,FP,RunningEnd	; we haven't ticked
 	SW		FP,OFSTCTL(GP)		; clear ready bit
 	LW		T0,LowerSec(FP)
+	beq		T0,FP,TickUpperSec
 	ADDI	T0,T0,-1
 	SW		T0,LowerSec(FP)
+TickDone:
 	CALL	DisplayHex(FP)
 	bt		FP,FP,RunningEnd
-	
+TickUpperSec:
+	LW		T0,UpperSec(FP)
+	beq		T0,FP,TickLowerMin
+	SUBI	T0,T0,0x10;
+	SW		T0,UpperSec(FP)
+RollLowerSec:
+	ADDI	T0,FP,9
+	SW		T0,LowerSec(FP)
+	bt		FP,FP,TickDone
+TickLowerMin:
+	LW		T0,LowerMin(FP)
+	beq		T0,FP,TickUpperMin
+	ADDI	T0,T0,-1
+	SW		T0,LowerMin(FP)
+RollUpperSec:
+	ADDI	T0,FP,0x50
+	SW		T0,UpperSec(FP)
+	bt		FP,FP,RollLowerSec
+TickUpperMin:
+	LW		T0,UpperMin(FP)
+	beq		T0,FP,Blink			; We should be at zero here
+	SUBI	T0,T0,0x10
+	SW		T0,UpperMin(FP)
+	ADDI	T0,FP,9
+	SW		T0,LowerMin(FP)
+	bt		FP,FP,RollUpperSec
 ;Display the current time on the Hex
 DisplayHex:
 	LW		S1,UpperSec(FP)
