@@ -37,10 +37,6 @@ Init:
 	SW		FP,LowerMin(FP)
 	SW		FP,UpperSec(FP)
 	SW		FP,LowerSec(FP)
-	;Set timer limit
-	MVHI	T0,Second
-	ADDI	T0,T0,Second
-	SW		T0,OFSTLIM(GP)	; Set TLIM = 1000ms
 	ADDI	S0,FP,2
 	ADDI	S2,FP,1	
 Reset:
@@ -83,10 +79,15 @@ Ready:
 Dummy3:
 	LW		T0,OFSKEY(GP)
 	bne		T0,FP,Dummy3
+	;Set timer limit
+	MVHI	T0,Second
+	ADDI	T0,T0,Second
+	SW		T0,OFSTLIM(GP)	; Set TLIM = 1000ms
+	SW		FP,OFSTCTL(GP)	; clear readybit
+	SW		FP,OFSTIMR(GP)	; clear timer
 Runing:
-	CALL	DisplayHex(FP)	; update Hex display
-	CALL	CheckTick(FP)	; update countdown
-	beq		RV,FP,Blink
+	bt		FP,FP,CheckTick
+RunningEnd:
 	LW		T0,OFSKEY(GP)
 	beq		T0,S2,Init
 	bne		T0,S0,Runing
@@ -95,21 +96,61 @@ Dummy4:
 	bne		T0,FP,Dummy4
 	beq		T0,FP,Ready
 Blink:
+	CALL	DisplayHex(FP)
 	;Set timer limit
 	MVHI	T0,HalfSec
 	ADDI	T0,T0,HalfSec
 	SW		T0,OFSTLIM(GP)	; Set TLIM = 1000ms
+	SW		FP,OFSTCTL(GP)	; clear readybit
+	SW		FP,OFSTIMR(GP)	; clear timer
 BlinkLoop:
-	LW		T0,OFSKEY(GP)	; first check if reset key is pressed
+	LW		T0,OFSKEY(GP)
 	beq		T0,S2,Init
-	LW		T0,OFSTCTL(GP)	; check for tick
-	beq		T0,FP,BlinkLoop	; loop if we haven't ticked
-	SW		FP,OFSTCTL(GP)	; update that we've ticked
-	LW		T0,OFSLEDR(GP)	; get the current LEDR
-	NOT		T0,T0;			; flip current LEDR
-	SW		T0,OFSLEDR(GP)	; save new LEDR
+	LW		T0,OFSTCTL(GP)
+	beq		T0,FP,BlinkLoop
+	SW		FP,OFSTCTL(GP)
+	LW		T0,OFSLEDR(GP)
+	NOT		T0,T0;
+	SW		T0,OFSLEDR(GP)
 	bt		FP,FP,BlinkLoop
-	
+
+CheckTick:
+	LW		T0,OFSTCTL(GP)
+	beq		T0,FP,RunningEnd	; we haven't ticked
+	SW		FP,OFSTCTL(GP)		; clear ready bit
+	LW		T0,LowerSec(FP)
+	beq		T0,FP,TickUpperSec
+	ADDI	T0,T0,-1
+	SW		T0,LowerSec(FP)
+TickDone:
+	CALL	DisplayHex(FP)
+	bt		FP,FP,RunningEnd
+TickUpperSec:
+	LW		T0,UpperSec(FP)
+	beq		T0,FP,TickLowerMin
+	SUBI	T0,T0,0x10;
+	SW		T0,UpperSec(FP)
+RollLowerSec:
+	ADDI	T0,FP,9
+	SW		T0,LowerSec(FP)
+	bt		FP,FP,TickDone
+TickLowerMin:
+	LW		T0,LowerMin(FP)
+	beq		T0,FP,TickUpperMin
+	ADDI	T0,T0,-1
+	SW		T0,LowerMin(FP)
+RollUpperSec:
+	ADDI	T0,FP,0x50
+	SW		T0,UpperSec(FP)
+	bt		FP,FP,RollLowerSec
+TickUpperMin:
+	LW		T0,UpperMin(FP)
+	beq		T0,FP,Blink			; We should be at zero here
+	SUBI	T0,T0,0x10
+	SW		T0,UpperMin(FP)
+	ADDI	T0,FP,9
+	SW		T0,LowerMin(FP)
+	bt		FP,FP,RollUpperSec
 ;Display the current time on the Hex
 DisplayHex:
 	LW		S1,UpperSec(FP)
@@ -125,49 +166,4 @@ HexLoop:					; bitshift the miniute values
 	bne		T1,FP,HexLoop
 	ADD		S1,S1,T0
 	SW		S1,OFSHEX(GP)
-	RET
-	
-CheckTick:
-	LW		T0,OFSTCTL(GP)
-	beq		T0,FP,EndTick	; we haven't ticked
-	SW		FP,OFSTCTL(GP)	; we've ticked
-	LW 		T0, LowerSec(FP)
-	BEQ 	T0, FP, LowerSecIsZero
-	ADDI 	T0, T0, -1
-	SW 		T0, LowerSec(FP)
-	BT 		FP,FP,EndTick
-LowerSecIsZero:
-	LW 		T0, UpperSec(FP)
-	BEQ 	T0, FP, UpperSecIsZero
-	ADDI 	T0, T0, -16
-	SW 		T0, UpperSec(FP)
-	ADDI 	T0, FP, 9
-	SW 		T0, LowerSec(FP)
-	BT 		FP,FP,EndTick
-UpperSecIsZero:
-	LW 		T0, LowerMin(FP)
-	BEQ 	T0, FP, LowerMinIsZero
-	ADDI 	T0, T0, -1
-	SW 		T0, LowerMin(FP)
-	ADDI 	T0, FP, 80 			; 80 = 0x50
-	SW 		T0, UpperSec(FP)
-	ADDI 	T0, FP, 9
-	SW 		T0, LowerSec(FP)
-	BT 		FP,FP,EndTick
-LowerMinIsZero:
-	LW 		T0, UpperMin(FP)
-	BEQ 	T0, FP, Timeout
-	ADDI 	T0, T0, -16
-	SW 		T0, UpperMin(FP)
-	ADDI 	T0, FP, 9
-	SW 		T0, LowerMin(FP)
-	SW 		T0, LowerSec(FP)
-	ADDI 	T0, FP, 80
-	SW 		T0, UpperSec(FP)
-EndTick:					; return, clock is not zero
-	ADDI	RV,FP,1
-	RET
-Timeout:					; return, clock is zero
-	ADDI	RV,FP,0
-	RET
-	
+	RET	
